@@ -45,12 +45,12 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 function getDetailedUrl(filename) {
-    return `https://oldschool.runescape.wiki/images/thumb/${filename}/300px-${filename}`;
+    return `sprites/${filename}`;
 }
 
 function getRegularUrl(wikiName) {
     const filename = `${wikiName.replace(/ /g, '_')}.png`;
-    return `https://oldschool.runescape.wiki/images/thumb/${filename}/120px-${filename}`;
+    return `sprites/${filename}`;
 }
 
 const herbData = [
@@ -110,11 +110,11 @@ function initGame() {
 
     shuffledHerbs.forEach((herb, index) => {
         let detailedImg = new Image();
-        detailedImg.crossOrigin = "anonymous";
+        detailedImg.onload = draw;
         detailedImg.src = getDetailedUrl(herb.filename);
 
         let regularImg = new Image();
-        regularImg.crossOrigin = "anonymous";
+        regularImg.onload = draw;
         regularImg.src = getRegularUrl(herb.wikiName);
         
         let col = index % 5;
@@ -180,10 +180,7 @@ function draw() {
     ctx.fillStyle = "#ff4444";
     ctx.fillText(`Incorrect: ${lockedIncorrectCount}`, 260, 692);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "14px sans-serif";
-    ctx.fillText("HD Art", toggleSwitch.x - 55, toggleSwitch.y + 17);
-
+    // Track
     ctx.fillStyle = useDetailedSprites ? "#2e4d2e" : "#2b221a";
     ctx.strokeStyle = useDetailedSprites ? "#55cc55" : "#5b4a3a";
     ctx.lineWidth = 2;
@@ -195,12 +192,25 @@ function draw() {
     ctx.fill();
     ctx.stroke();
 
+    // Knob
     ctx.fillStyle = "#fe9800";
     ctx.beginPath();
     let knobX = useDetailedSprites ? (toggleSwitch.x + toggleSwitch.width - toggleSwitch.height / 2) : (toggleSwitch.x + toggleSwitch.height / 2);
     let knobY = toggleSwitch.y + toggleSwitch.height / 2;
     ctx.arc(knobX, knobY, toggleSwitch.knobRadius, 0, Math.PI * 2);
     ctx.fill();
+
+    // Both static options visible
+    ctx.font = "14px sans-serif";
+    
+    ctx.textAlign = "right";
+    ctx.fillStyle = !useDetailedSprites ? "#ffffff" : "#776655";
+    ctx.fillText("Inventory Icon", toggleSwitch.x - 12, toggleSwitch.y + 17);
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = useDetailedSprites ? "#ffffff" : "#776655";
+    ctx.fillText("Detailed", toggleSwitch.x + toggleSwitch.width + 12, toggleSwitch.y + 17);
+    ctx.textAlign = "left"; // reset
 
     if (gameOver) {
         ctx.fillStyle = score === 15 ? "#00ff00" : "#ffaa00";
@@ -242,8 +252,6 @@ function draw() {
             ctx.imageSmoothingEnabled = useDetailedSprites;
             ctx.drawImage(activeImg, dx, dy, dWidth, dHeight);
             ctx.imageSmoothingEnabled = true;
-        } else {
-            activeImg.onload = () => draw();
         }
     });
 
@@ -378,7 +386,7 @@ canvas.addEventListener('mouseup', (e) => {
 });
 
 initGame();
-setTimeout(draw, 400); 
+draw();
 </script>
 </body>
 </html>
