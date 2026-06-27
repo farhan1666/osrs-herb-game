@@ -218,15 +218,16 @@ function draw() {
     }
 
     herbs.forEach(herb => {
-        ctx.fillStyle = herb.matched ? "#2e4d2e" : "#2b221a";
-        ctx.strokeStyle = herb.matched ? "#55cc55" : "#5b4a3a";
+        // Adjusted card background and border color configurations
+        ctx.fillStyle = herb.matched ? "#e2f0e2" : "#ffffff";
+        ctx.strokeStyle = herb.matched ? "#44aa44" : "#2f251c";
         ctx.lineWidth = 3;
         ctx.fillRect(herb.x, herb.y, herb.width, herb.height);
         ctx.strokeRect(herb.x, herb.y, herb.width, herb.height);
 
-        // Render the answer above the box if the game has ended
+        // Render the answer above the box if the game has ended (darkened colors for white bg visibility)
         if (gameOver) {
-            ctx.fillStyle = herb.matched ? "#55cc55" : "#ff4444";
+            ctx.fillStyle = herb.matched ? "#227722" : "#cc1111";
             ctx.font = "bold 13px sans-serif";
             ctx.textAlign = "center";
             ctx.fillText(herb.name, herb.x + herb.width / 2, herb.y - 10);
