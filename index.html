@@ -44,26 +44,31 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-function getWikiUrl(filename) {
+function getDetailedUrl(filename) {
     return `https://oldschool.runescape.wiki/images/thumb/${filename}/300px-${filename}`;
 }
 
+function getRegularUrl(wikiName) {
+    const filename = `${wikiName.replace(/ /g, '_')}.png`;
+    return `https://oldschool.runescape.wiki/images/thumb/${filename}/120px-${filename}`;
+}
+
 const herbData = [
-    { name: "Guam leaf", filename: "Guam_leaf_detail.png" },
-    { name: "Marrentill", filename: "Marrentill_detail.png" },
-    { name: "Tarromin", filename: "Tarromin_detail.png" },
-    { name: "Harralander", filename: "Harralander_detail.png" },
-    { name: "Ranarr weed", filename: "Ranarr_weed_detail.png" },
-    { name: "Toadflax", filename: "Toadflax_detail.png" },
-    { name: "Irit leaf", filename: "Irit_leaf_detail.png" },
-    { name: "Avantoe", filename: "Avantoe_detail.png" },
-    { name: "Kwuarm", filename: "Kwuarm_detail.png" },
-    { name: "Snapdragon", filename: "Snapdragon_detail.png" },
-    { name: "Cadantine", filename: "Cadantine_detail.png" },
-    { name: "Lantadyme", filename: "Lantadyme_detail.png" },
-    { name: "Dwarf weed", filename: "Dwarf_weed_detail.png" },
-    { name: "Torstol", filename: "Torstol_detail.png" },
-    { name: "Huasca", filename: "Huasca_detail.png" }
+    { name: "Guam leaf", filename: "Guam_leaf_detail.png", wikiName: "Guam leaf" },
+    { name: "Marrentill", filename: "Marrentill_detail.png", wikiName: "Marrentill" },
+    { name: "Tarromin", filename: "Tarromin_detail.png", wikiName: "Tarromin" },
+    { name: "Harralander", filename: "Harralander_detail.png", wikiName: "Harralander" },
+    { name: "Ranarr weed", filename: "Ranarr_weed_detail.png", wikiName: "Ranarr weed" },
+    { name: "Toadflax", filename: "Toadflax_detail.png", wikiName: "Toadflax" },
+    { name: "Irit leaf", filename: "Irit_leaf_detail.png", wikiName: "Irit leaf" },
+    { name: "Avantoe", filename: "Avantoe_detail.png", wikiName: "Avantoe" },
+    { name: "Kwuarm", filename: "Kwuarm_detail.png", wikiName: "Kwuarm" },
+    { name: "Snapdragon", filename: "Snapdragon_detail.png", wikiName: "Snapdragon" },
+    { name: "Cadantine", filename: "Cadantine_detail.png", wikiName: "Cadantine" },
+    { name: "Lantadyme", filename: "Lantadyme_detail.png", wikiName: "Lantadyme" },
+    { name: "Dwarf weed", filename: "Dwarf_weed_detail.png", wikiName: "Dwarf weed" },
+    { name: "Torstol", filename: "Torstol_detail.png", wikiName: "Torstol" },
+    { name: "Huasca", filename: "Huasca_detail.png", wikiName: "Huasca" }
 ];
 
 let herbs = [];
@@ -73,6 +78,15 @@ let dragOffset = { x: 0, y: 0 };
 let score = 0;
 let lockedIncorrectCount = 0;
 let gameOver = false;
+
+let useDetailedSprites = true;
+const toggleSwitch = {
+    x: 950,
+    y: 670,
+    width: 50,
+    height: 26,
+    knobRadius: 10
+};
 
 function shuffle(array) {
     return array.sort(() => Math.random() - 0.5);
@@ -95,16 +109,21 @@ function initGame() {
     const gapY = 40;
 
     shuffledHerbs.forEach((herb, index) => {
-        let img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = getWikiUrl(herb.filename);
+        let detailedImg = new Image();
+        detailedImg.crossOrigin = "anonymous";
+        detailedImg.src = getDetailedUrl(herb.filename);
+
+        let regularImg = new Image();
+        regularImg.crossOrigin = "anonymous";
+        regularImg.src = getRegularUrl(herb.wikiName);
         
         let col = index % 5;
         let row = Math.floor(index / 5);
 
         herbs.push({
             name: herb.name,
-            img: img,
+            detailedImg: detailedImg,
+            regularImg: regularImg,
             x: startX + col * (itemWidth + gapX),
             y: startY + row * (itemHeight + gapY),
             width: itemWidth,
@@ -161,6 +180,28 @@ function draw() {
     ctx.fillStyle = "#ff4444";
     ctx.fillText(`Incorrect: ${lockedIncorrectCount}`, 260, 692);
 
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("HD Art", toggleSwitch.x - 55, toggleSwitch.y + 17);
+
+    ctx.fillStyle = useDetailedSprites ? "#2e4d2e" : "#2b221a";
+    ctx.strokeStyle = useDetailedSprites ? "#55cc55" : "#5b4a3a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(toggleSwitch.x + toggleSwitch.height / 2, toggleSwitch.y + toggleSwitch.height / 2, toggleSwitch.height / 2, Math.PI / 2, (3 * Math.PI) / 2);
+    ctx.lineTo(toggleSwitch.x + toggleSwitch.width - toggleSwitch.height / 2, toggleSwitch.y);
+    ctx.arc(toggleSwitch.x + toggleSwitch.width - toggleSwitch.height / 2, toggleSwitch.y + toggleSwitch.height / 2, toggleSwitch.height / 2, (3 * Math.PI) / 2, Math.PI / 2);
+    ctx.lineTo(toggleSwitch.x + toggleSwitch.height / 2, toggleSwitch.y + toggleSwitch.height);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#fe9800";
+    ctx.beginPath();
+    let knobX = useDetailedSprites ? (toggleSwitch.x + toggleSwitch.width - toggleSwitch.height / 2) : (toggleSwitch.x + toggleSwitch.height / 2);
+    let knobY = toggleSwitch.y + toggleSwitch.height / 2;
+    ctx.arc(knobX, knobY, toggleSwitch.knobRadius, 0, Math.PI * 2);
+    ctx.fill();
+
     if (gameOver) {
         ctx.fillStyle = score === 15 ? "#00ff00" : "#ffaa00";
         ctx.fillText(`Game Over. Final Score: ${score} / 15. Click to restart.`, 480, 692);
@@ -173,24 +214,36 @@ function draw() {
         ctx.fillRect(herb.x, herb.y, herb.width, herb.height);
         ctx.strokeRect(herb.x, herb.y, herb.width, herb.height);
 
-        if (herb.img.complete) {
-            let imgRatio = herb.img.width / herb.img.height;
-            let slotRatio = herb.width / herb.height;
-            let dWidth, dHeight;
+        // Render the answer above the box if the game has ended
+        if (gameOver) {
+            ctx.fillStyle = herb.matched ? "#55cc55" : "#ff4444";
+            ctx.font = "bold 13px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(herb.name, herb.x + herb.width / 2, herb.y - 10);
+            ctx.textAlign = "left"; // reset
+        }
 
-            if (imgRatio > slotRatio) {
-                dWidth = herb.width - 10;
-                dHeight = dWidth / imgRatio;
-            } else {
-                dHeight = herb.height - 15;
-                dWidth = dHeight * imgRatio;
-            }
+        let activeImg = useDetailedSprites ? herb.detailedImg : herb.regularImg;
+
+        if (activeImg.complete && activeImg.naturalWidth !== 0) {
+            const marginX = 14;
+            const marginY = 14;
+            const maxW = herb.width - marginX;
+            const maxH = herb.height - marginY;
+
+            let scale = Math.min(maxW / activeImg.naturalWidth, maxH / activeImg.naturalHeight);
+            
+            let dWidth = activeImg.naturalWidth * scale;
+            let dHeight = activeImg.naturalHeight * scale;
 
             let dx = herb.x + (herb.width - dWidth) / 2;
             let dy = herb.y + (herb.height - dHeight) / 2;
-            ctx.drawImage(herb.img, dx, dy, dWidth, dHeight);
+            
+            ctx.imageSmoothingEnabled = useDetailedSprites;
+            ctx.drawImage(activeImg, dx, dy, dWidth, dHeight);
+            ctx.imageSmoothingEnabled = true;
         } else {
-            herb.img.onload = () => draw();
+            activeImg.onload = () => draw();
         }
     });
 
@@ -227,13 +280,20 @@ function getMousePos(e) {
 }
 
 canvas.addEventListener('mousedown', (e) => {
+    const pos = getMousePos(e);
+
+    if (pos.x >= toggleSwitch.x && pos.x <= toggleSwitch.x + toggleSwitch.width &&
+        pos.y >= toggleSwitch.y && pos.y <= toggleSwitch.y + toggleSwitch.height) {
+        useDetailedSprites = !useDetailedSprites;
+        draw();
+        return;
+    }
+
     if (gameOver) {
         initGame();
         draw();
         return;
     }
-
-    const pos = getMousePos(e);
     
     for (let i = textBoxes.length - 1; i >= 0; i--) {
         let box = textBoxes[i];
@@ -254,6 +314,12 @@ canvas.addEventListener('mousemove', (e) => {
     const pos = getMousePos(e);
     if (!selectedBox) {
         let hovering = false;
+        
+        if (pos.x >= toggleSwitch.x && pos.x <= toggleSwitch.x + toggleSwitch.width &&
+            pos.y >= toggleSwitch.y && pos.y <= toggleSwitch.y + toggleSwitch.height) {
+            hovering = true;
+        }
+
         for (let box of textBoxes) {
             if (!box.matched && !box.locked && pos.x >= box.x && pos.x <= box.x + box.width && pos.y >= box.y && pos.y <= box.y + box.height) {
                 hovering = true;
@@ -284,7 +350,10 @@ canvas.addEventListener('mouseup', (e) => {
     }
 
     if (targetSlotFound) {
-        if (!targetSlotFound.matched && targetSlotFound.name === selectedBox.name) {
+        if (targetSlotFound.matched) {
+            selectedBox.x = selectedBox.startX;
+            selectedBox.y = selectedBox.startY;
+        } else if (targetSlotFound.name === selectedBox.name) {
             targetSlotFound.matched = true;
             selectedBox.matched = true;
             score++;
