@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Herb Matching Game</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #fe9800;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+        }
+        h1 {
+            margin: 5px 0;
+            text-shadow: 2px 2px #000;
+        }
+        canvas {
+            border: 3px solid #3a3a3a;
+            background-color: #4a3b2c;
+            box-shadow: 0 0 25px rgba(0,0,0,0.8);
+            cursor: default;
+        }
+        .instructions {
+            color: #fff;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>OSRS Herb Matching Game</h1>
+    <canvas id="gameCanvas" width="1150" height="720"></canvas>
+    <div class="instructions">Drag names onto the corresponding images. Incorrect matches disable the item.</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function getWikiUrl(filename) {
+    return `https://oldschool.runescape.wiki/images/thumb/${filename}/300px-${filename}`;
+}
+
+const herbData = [
+    { name: "Guam leaf", filename: "Guam_leaf_detail.png" },
+    { name: "Marrentill", filename: "Marrentill_detail.png" },
+    { name: "Tarromin", filename: "Tarromin_detail.png" },
+    { name: "Harralander", filename: "Harralander_detail.png" },
+    { name: "Ranarr weed", filename: "Ranarr_weed_detail.png" },
+    { name: "Toadflax", filename: "Toadflax_detail.png" },
+    { name: "Irit leaf", filename: "Irit_leaf_detail.png" },
+    { name: "Avantoe", filename: "Avantoe_detail.png" },
+    { name: "Kwuarm", filename: "Kwuarm_detail.png" },
+    { name: "Snapdragon", filename: "Snapdragon_detail.png" },
+    { name: "Cadantine", filename: "Cadantine_detail.png" },
+    { name: "Lantadyme", filename: "Lantadyme_detail.png" },
+    { name: "Dwarf weed", filename: "Dwarf_weed_detail.png" },
+    { name: "Torstol", filename: "Torstol_detail.png" },
+    { name: "Huasca", filename: "Huasca_detail.png" }
+];
+
+let herbs = [];
+let textBoxes = [];
+let selectedBox = null;
+let dragOffset = { x: 0, y: 0 };
+let score = 0;
+let lockedIncorrectCount = 0;
+let gameOver = false;
+
+function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
+
+function initGame() {
+    score = 0;
+    lockedIncorrectCount = 0;
+    gameOver = false;
+    herbs = [];
+    textBoxes = [];
+
+    let shuffledHerbs = shuffle([...herbData]);
+
+    const itemWidth = 115;
+    const itemHeight = 150;
+    const startX = 25;
+    const startY = 30;
+    const gapX = 18;
+    const gapY = 40;
+
+    shuffledHerbs.forEach((herb, index) => {
+        let img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = getWikiUrl(herb.filename);
+        
+        let col = index % 5;
+        let row = Math.floor(index / 5);
+
+        herbs.push({
+            name: herb.name,
+            img: img,
+            x: startX + col * (itemWidth + gapX),
+            y: startY + row * (itemHeight + gapY),
+            width: itemWidth,
+            height: itemHeight,
+            matched: false
+        });
+    });
+
+    let shuffledLabels = shuffle([...herbData]);
+    const textWidth = 180;
+    const textHeight = 40;
+    const textStartX = 720;
+    const textStartY = 30;
+    const textGapX = 20;
+    const textGapY = 16;
+
+    shuffledLabels.forEach((herb, index) => {
+        let col = index % 2;
+        let row = Math.floor(index / 2);
+        let xPos = textStartX + col * (textWidth + textGapX);
+        let yPos = textStartY + row * (textHeight + textGapY);
+
+        textBoxes.push({
+            name: herb.name,
+            x: xPos,
+            y: yPos,
+            startX: xPos,
+            startY: yPos,
+            width: textWidth,
+            height: textHeight,
+            matched: false,
+            locked: false
+        });
+    });
+}
+
+function draw() {
+    ctx.fillStyle = "#4a3b2c";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "#3a2f24";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(690, 0);
+    ctx.lineTo(690, 650);
+    ctx.stroke();
+
+    ctx.fillStyle = "#3d3023";
+    ctx.fillRect(0, 650, canvas.width, 70);
+    
+    ctx.fillStyle = "#fe9800";
+    ctx.font = "bold 22px sans-serif";
+    ctx.fillText(`Correct: ${score} / 15`, 40, 692);
+    ctx.fillStyle = "#ff4444";
+    ctx.fillText(`Incorrect: ${lockedIncorrectCount}`, 260, 692);
+
+    if (gameOver) {
+        ctx.fillStyle = score === 15 ? "#00ff00" : "#ffaa00";
+        ctx.fillText(`Game Over. Final Score: ${score} / 15. Click to restart.`, 480, 692);
+    }
+
+    herbs.forEach(herb => {
+        ctx.fillStyle = herb.matched ? "#2e4d2e" : "#2b221a";
+        ctx.strokeStyle = herb.matched ? "#55cc55" : "#5b4a3a";
+        ctx.lineWidth = 3;
+        ctx.fillRect(herb.x, herb.y, herb.width, herb.height);
+        ctx.strokeRect(herb.x, herb.y, herb.width, herb.height);
+
+        if (herb.img.complete) {
+            let imgRatio = herb.img.width / herb.img.height;
+            let slotRatio = herb.width / herb.height;
+            let dWidth, dHeight;
+
+            if (imgRatio > slotRatio) {
+                dWidth = herb.width - 10;
+                dHeight = dWidth / imgRatio;
+            } else {
+                dHeight = herb.height - 15;
+                dWidth = dHeight * imgRatio;
+            }
+
+            let dx = herb.x + (herb.width - dWidth) / 2;
+            let dy = herb.y + (herb.height - dHeight) / 2;
+            ctx.drawImage(herb.img, dx, dy, dWidth, dHeight);
+        } else {
+            herb.img.onload = () => draw();
+        }
+    });
+
+    textBoxes.forEach(box => {
+        if (box.matched) return;
+
+        if (box.locked) {
+            ctx.fillStyle = "#221c16";
+            ctx.strokeStyle = "#554433";
+        } else {
+            ctx.fillStyle = (box === selectedBox) ? "#6b563f" : "#3a2f24";
+            ctx.strokeStyle = "#fe9800";
+        }
+        
+        ctx.lineWidth = 2;
+        ctx.fillRect(box.x, box.y, box.width, box.height);
+        ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+        ctx.fillStyle = box.locked ? "#776655" : "#ffffff";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        
+        ctx.fillText(box.name, box.x + box.width / 2, box.y + 24);
+    });
+    ctx.textAlign = "left"; 
+}
+
+function getMousePos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+    };
+}
+
+canvas.addEventListener('mousedown', (e) => {
+    if (gameOver) {
+        initGame();
+        draw();
+        return;
+    }
+
+    const pos = getMousePos(e);
+    
+    for (let i = textBoxes.length - 1; i >= 0; i--) {
+        let box = textBoxes[i];
+        if (!box.matched && !box.locked && 
+            pos.x >= box.x && pos.x <= box.x + box.width &&
+            pos.y >= box.y && pos.y <= box.y + box.height) {
+            
+            selectedBox = box;
+            dragOffset.x = pos.x - box.x;
+            dragOffset.y = pos.y - box.y;
+            textBoxes.push(textBoxes.splice(i, 1)[0]);
+            break;
+        }
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    const pos = getMousePos(e);
+    if (!selectedBox) {
+        let hovering = false;
+        for (let box of textBoxes) {
+            if (!box.matched && !box.locked && pos.x >= box.x && pos.x <= box.x + box.width && pos.y >= box.y && pos.y <= box.y + box.height) {
+                hovering = true;
+                break;
+            }
+        }
+        canvas.style.cursor = hovering ? 'pointer' : 'default';
+        return;
+    }
+
+    selectedBox.x = pos.x - dragOffset.x;
+    selectedBox.y = pos.y - dragOffset.y;
+    draw();
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (!selectedBox) return;
+
+    const pos = getMousePos(e);
+    let targetSlotFound = null;
+
+    for (let herb of herbs) {
+        if (pos.x >= herb.x && pos.x <= herb.x + herb.width &&
+            pos.y >= herb.y && pos.y <= herb.y + herb.height) {
+            targetSlotFound = herb;
+            break;
+        }
+    }
+
+    if (targetSlotFound) {
+        if (!targetSlotFound.matched && targetSlotFound.name === selectedBox.name) {
+            targetSlotFound.matched = true;
+            selectedBox.matched = true;
+            score++;
+        } else {
+            selectedBox.locked = true;
+            lockedIncorrectCount++;
+            selectedBox.x = selectedBox.startX;
+            selectedBox.y = selectedBox.startY;
+        }
+    } else {
+        selectedBox.x = selectedBox.startX;
+        selectedBox.y = selectedBox.startY;
+    }
+
+    selectedBox = null;
+
+    if (score === 15 || (score + lockedIncorrectCount === 15)) {
+        gameOver = true;
+    }
+
+    draw();
+});
+
+initGame();
+setTimeout(draw, 400); 
+</script>
+</body>
+</html>
